@@ -1,0 +1,208 @@
+
+openapi: 3.0.3
+
+info:
+  title: Book Management API
+  version: 1.0.0
+  description: API สำหรับจัดการข้อมูลหนังสือ ผู้แต่ง และหมวดหมู่
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Books
+    description: จัดการข้อมูลหนังสือ
+
+paths:
+  /api/books:
+    get:
+      tags: [Books]
+      summary: ดูรายการหนังสือทั้งหมด
+      responses:
+        "200":
+          description: ดึงรายการหนังสือสำเร็จ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+
+    post:
+      tags: [Books]
+      summary: เพิ่มหนังสือใหม่
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+            example:
+              title: Test Book
+              isbn: "9780000000001"
+              published_year: 2024
+              total_copies: 5
+              available_copies: 5
+              author_id: 1
+              category_id: 1
+      responses:
+        "201":
+          description: เพิ่มหนังสือสำเร็จ
+        "400":
+          description: ข้อมูลไม่ถูกต้อง
+        "409":
+          description: ISBN ซ้ำ
+
+  /api/external/books:
+    get:
+      tags: [Books]
+      summary: ค้นหาหนังสือจาก Google Books พร้อม Fallback
+      description: ลองเชื่อมต่อ Google Books สูงสุด 3 ครั้ง และค้นหาจาก MySQL หากภายนอกล้มเหลว
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          example: clean code
+      responses:
+        "200":
+          description: ค้นหาสำเร็จจาก Google Books หรือฐานข้อมูลสำรอง
+        "400":
+          description: ไม่ได้ระบุคำค้นหา
+        "500":
+          description: ระบบค้นหาล้มเหลว
+
+  /api/books/search:
+    get:
+      tags: [Books]
+      summary: ค้นหาหนังสือ
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          example: clean
+      responses:
+        "200":
+          description: ผลการค้นหา
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+        "400":
+          description: ไม่ได้ระบุคำค้นหา
+
+  /api/books/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+
+    get:
+      tags: [Books]
+      summary: ดูรายละเอียดหนังสือตาม ID
+      responses:
+        "200":
+          description: พบหนังสือ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "404":
+          description: ไม่พบหนังสือ
+
+    put:
+      tags: [Books]
+      summary: แก้ไขข้อมูลหนังสือ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+      responses:
+        "200":
+          description: แก้ไขข้อมูลสำเร็จ
+        "400":
+          description: ข้อมูลไม่ถูกต้อง
+        "404":
+          description: ไม่พบหนังสือ
+        "409":
+          description: ISBN ซ้ำ
+
+    delete:
+      tags: [Books]
+      summary: ลบหนังสือ
+      responses:
+        "200":
+          description: ลบหนังสือสำเร็จ
+        "404":
+          description: ไม่พบหนังสือ
+        "409":
+          description: มีข้อมูลอื่นอ้างอิงหนังสืออยู่
+
+components:
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Clean Code
+        isbn:
+          type: string
+          example: "9780132350884"
+        author:
+          type: string
+          example: Robert C. Martin
+        category:
+          type: string
+          example: Programming
+        published_year:
+          type: integer
+          example: 2008
+        total_copies:
+          type: integer
+          example: 3
+        available_copies:
+          type: integer
+          example: 3
+
+    BookInput:
+      type: object
+      required:
+        - title
+        - isbn
+        - published_year
+        - total_copies
+        - available_copies
+        - author_id
+        - category_id
+      properties:
+        title:
+          type: string
+        isbn:
+          type: string
+        published_year:
+          type: integer
+        total_copies:
+          type: integer
+          minimum: 0
+        available_copies:
+          type: integer
+          minimum: 0
+        author_id:
+          type: integer
+        category_id:
+          type: integer
